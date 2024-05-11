@@ -61,7 +61,7 @@ export const updateContact = async (req, res, next) => {
   }
 };
 
-export const updateFavorite = async (req, res, next) => {
+export const updateStatusContact = async (req, res, next) => {
   try {
     const { id } = req.params;
     const result = await Contact.findByIdAndUpdate(id, req.body, { new: true });
