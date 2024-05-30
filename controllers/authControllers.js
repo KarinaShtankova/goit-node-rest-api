@@ -9,7 +9,7 @@ import Jimp from "jimp";
 import User from "../models/users.js";
 
 import HttpError from "../helpers/HttpError.js";
-import { log } from "node:console";
+import sendMail from "../helpers/sendEmail.js";
 
 const avatarDir = path.resolve("public", "avatars");
 
@@ -23,12 +23,24 @@ export const registerUser = async (req, res, next) => {
       throw HttpError(409, "Email in use");
     }
     const hashPassword = await bcrypt.hash(password, 10);
+    const verificationToken = crypto.randomUUID();
     const avatarURL = gravatar.url(email);
     const newUser = await User.create({
       ...req.body,
       password: hashPassword,
       avatarURL,
+      verificationToken,
     });
+
+    const verifyEmail = {
+      to: email,
+      from: "alextrejo@meta.ua",
+      subject: "Welcome to Phonebook",
+      html: `To confirm your email please go to the <a href="http://localhost:3000/users/verify/${verificationToken}"> link`,
+      text: `To confirm your email please open the link http://localhost:3000/users/verify/${verificationToken}`,
+    };
+    await sendMail(verifyEmail);
+
     res.status(201).json({
       user: {
         email: newUser.email,
@@ -51,6 +63,9 @@ export const loginUser = async (req, res, next) => {
     const passwordCompare = await bcrypt.compare(password, user.password);
     if (passwordCompare === false) {
       throw HttpError(401, "Email or password is wrong");
+    }
+    if (user.verify === false) {
+      throw HttpError(401, "Please verify your email");
     }
 
     const payload = {
@@ -128,6 +143,52 @@ export const updateAvatar = async (req, res, next) => {
     res.status(200).json({
       avatarURL,
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const verifyUser = async (req, res, next) => {
+  try {
+    const { verificationToken } = req.params;
+    const user = await User.findOne({ verificationToken });
+    if (!user) {
+      throw HttpError(404, "User not found");
+    }
+    await User.findByIdAndUpdate(user._id, {
+      verify: true,
+      verificationToken: "",
+    });
+    res.status(200).json({
+      message: "Verification successful",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const resendVerifyEmail = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+
+    if (user === null) {
+      throw HttpError(401, "Email is wrong");
+    }
+    if (user.verify === true) {
+      throw HttpError(404, "Verification has already been passed");
+    }
+
+    const verifyEmail = {
+      to: email,
+      from: "alextrejo@meta.ua",
+      subject: "Welcome to Phonebook",
+      html: `To confirm your email please go to the <a href="http://localhost:3000/users/verify/${user.verificationToken}"> link`,
+      text: `To confirm your email please open the link http://localhost:3000/users/verify/${user.verificationToken}`,
+    };
+    await sendMail(verifyEmail);
+
+    res.status(200).json({ message: "Verification email sent" });
   } catch (error) {
     next(error);
   }
