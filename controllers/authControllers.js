@@ -14,7 +14,7 @@ import sendMail from "../helpers/sendEmail.js";
 const avatarDir = path.resolve("public", "avatars");
 
 const SECRET_KEY = process.env.SECRET_KEY;
-
+const BASE_URL = process.env.BASE_URL;
 export const registerUser = async (req, res, next) => {
   try {
     const { email, password } = req.body;
@@ -36,8 +36,8 @@ export const registerUser = async (req, res, next) => {
       to: email,
       from: "alextrejo@meta.ua",
       subject: "Welcome to Phonebook",
-      html: `To confirm your email please go to the <a href="http://localhost:3000/users/verify/${verificationToken}"> link`,
-      text: `To confirm your email please open the link http://localhost:3000/users/verify/${verificationToken}`,
+      html: `To confirm your email please go to the <a href="${BASE_URL}/users/verify/${verificationToken}"> link`,
+      text: `To confirm your email please open the link ${BASE_URL}/users/verify/${verificationToken}`,
     };
     await sendMail(verifyEmail);
 
@@ -183,8 +183,8 @@ export const resendVerifyEmail = async (req, res, next) => {
       to: email,
       from: "alextrejo@meta.ua",
       subject: "Welcome to Phonebook",
-      html: `To confirm your email please go to the <a href="http://localhost:3000/users/verify/${user.verificationToken}"> link`,
-      text: `To confirm your email please open the link http://localhost:3000/users/verify/${user.verificationToken}`,
+      html: `To confirm your email please go to the <a href="${BASE_URL}/users/verify/${user.verificationToken}"> link`,
+      text: `To confirm your email please open the link ${BASE_URL}/users/verify/${user.verificationToken}`,
     };
     await sendMail(verifyEmail);
 
